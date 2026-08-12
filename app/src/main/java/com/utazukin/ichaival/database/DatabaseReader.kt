@@ -322,9 +322,13 @@ object DatabaseReader {
                 }
                 it.endObject()
             }
+
+            if (ServerManager.checkVersionAtLeast(0, 9, 30))
+                updateTanks(currentTime)
         }
 
-        launch { database.archiveDao().clearSearchCache() }
+        launch { clearSearchCache() }
+        CategoryManager.updateCategories()
     }
 
     private suspend fun updateArchive(archiveJson: ArchiveJson) = database.archiveDao().insertJson(archiveJson)
