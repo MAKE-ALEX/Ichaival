@@ -195,25 +195,29 @@ class ArchiveListFragment : Fragment(),
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
         menuInflater.inflate(R.menu.archive_list_menu, menu)
         this.menu = menu
+
         when (activity) {
             is ArchiveSearch, is ArchiveRandomActivity -> {
                 with (menu) {
                     findItem(R.id.refresh_archives)?.isVisible = false
                     findItem(R.id.filter_menu)?.isVisible = false
+                    findItem(R.id.quick_sync)?.isVisible = false
                 }
             }
-        }
+            else -> {
+                val prefs = PreferenceManager.getDefaultSharedPreferences(requireActivity())
+                if (prefs.getBoolean(getString(R.string.quick_sync_pref), false)) {
+                    with (menu) {
+                        findItem(R.id.quick_sync)?.setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                        findItem(R.id.refresh_archives)?.setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER)
+                    }
+                } else {
+                    with (menu) {
+                        findItem(R.id.quick_sync)?.setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER)
+                        findItem(R.id.refresh_archives)?.setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                    }
+                }
 
-        val prefs = PreferenceManager.getDefaultSharedPreferences(requireActivity())
-        if (prefs.getBoolean(getString(R.string.quick_sync_pref), false)) {
-            with (menu) {
-                findItem(R.id.quick_sync)?.setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-                findItem(R.id.refresh_archives)?.setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER)
-            }
-        } else {
-            with (menu) {
-                findItem(R.id.quick_sync)?.setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER)
-                findItem(R.id.refresh_archives)?.setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
             }
         }
     }
