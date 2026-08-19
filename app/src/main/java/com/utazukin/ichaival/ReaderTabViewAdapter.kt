@@ -30,6 +30,7 @@ import androidx.recyclerview.widget.RecyclerView
 import coil3.dispose
 import coil3.imageLoader
 import coil3.load
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.addLastModifiedToFileCacheKey
 import coil3.request.allowRgb565
 import coil3.request.crossfade
@@ -43,7 +44,16 @@ class ReaderTabViewAdapter(activity: BaseActivity) : PagingDataAdapter<ReaderTab
 
     private val listener = activity as? OnTabInteractionListener
     private val activityScope = activity as CoroutineScope
-    private val coverLoader = activity.imageLoader.newBuilder().components { add(CoverInterceptor()) }.build()
+    private val coverLoader = activity.imageLoader.newBuilder().components {
+        add(CoverInterceptor())
+        add(
+                OkHttpNetworkFetcherFactory(
+                        callFactory = WebHandler.httpClient.newBuilder()
+                            .addInterceptor(ThumbHttpInterceptor(activityScope, WebHandler.httpClient))
+                            .build()
+                )
+        )
+    }.build()
 
     private val onClickListener: View.OnClickListener = View.OnClickListener { v ->
         val item = v.tag as ReaderTab
