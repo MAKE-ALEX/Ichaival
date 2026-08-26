@@ -48,6 +48,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -113,7 +114,7 @@ class ReaderActivity : BaseActivity(), OnFragmentInteractionListener, TabRemoved
             .components {
                 add(OkHttpNetworkFetcherFactory(callFactory =
                 WebHandler.httpClient.newBuilder()
-                    .addNetworkInterceptor(ProgressInterceptor(ResponseProgressListener()))
+                    .addNetworkInterceptor(ProgressInterceptor(ResponseProgressListener(lifecycleScope)))
                     .build()))
             }
             .build()

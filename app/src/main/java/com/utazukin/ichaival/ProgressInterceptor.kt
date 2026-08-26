@@ -22,6 +22,7 @@ import coil3.request.ImageResult
 import com.utazukin.ichaival.WebHandler.addHeaders
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.HttpUrl
 import okhttp3.Interceptor
@@ -116,11 +117,11 @@ interface UIProgressListener {
     fun update(progress: Int)
 }
 
-class ResponseProgressListener {
+class ResponseProgressListener(private val scope: CoroutineScope) {
 
     fun update(url: HttpUrl, bytesRead: Long, fullLength: Long) {
         val urlString = url.toString()
-        progressMap[urlString]?.update(((bytesRead / fullLength.toDouble()) * 100).toInt())
+        scope.launch { progressMap[urlString]?.update(((bytesRead / fullLength.toDouble()) * 100).toInt()) }
 
         if (fullLength <= bytesRead)
             forget(urlString)
