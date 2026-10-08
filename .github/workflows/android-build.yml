@@ -37,6 +37,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # gradlew is committed without the executable bit, so make it runnable here
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
       - name: Assemble debug
         run: ./gradlew --no-daemon --stacktrace assembleDebug
 
