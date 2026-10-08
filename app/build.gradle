@@ -117,6 +117,8 @@ dependencies {
     implementation "io.coil-kt.coil3:coil-gif:$coil_version"
     implementation "io.coil-kt.coil3:coil-compose:$coil_version"
     implementation "io.coil-kt.coil3:coil-network-okhttp:$coil_version"
+    // JPEG XL support for Coil (bundles libjxl native libs, requires Coil 3 since 2.4.0)
+    implementation 'io.github.awxkee:jxl-coder-coil:2.6.1'
     implementation "com.drakeet.drawer:drawer:1.0.3"
     implementation 'com.github.penfeizhou.android.animation:awebp:3.0.5'
 }

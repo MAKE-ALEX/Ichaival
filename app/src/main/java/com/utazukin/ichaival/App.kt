@@ -24,6 +24,7 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import com.awxkee.jxlcoder.coil.JxlDecoder
 import com.google.android.material.color.DynamicColors
 import com.utazukin.ichaival.database.DatabaseReader
 import kotlinx.coroutines.MainScope
@@ -55,6 +56,9 @@ class App : Application(), SingletonImageLoader.Factory {
                             chain.request().newBuilder().addHeader("Authorization", WebHandler.apiKey).build()
                         chain.proceed(request)
                     }.build()))
+
+                // JPEG XL images can't be decoded by the platform BitmapFactory
+                add(JxlDecoder.Factory())
             }
             .build()
     }

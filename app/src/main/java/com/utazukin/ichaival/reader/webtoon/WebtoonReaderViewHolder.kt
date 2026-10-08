@@ -42,7 +42,7 @@ import com.utazukin.ichaival.createGifLoader
 import com.utazukin.ichaival.downloadCoilImageWithProgress
 import com.utazukin.ichaival.getImageFormat
 import com.utazukin.ichaival.getMaxTextureSize
-import com.utazukin.ichaival.isAnimatedImage
+import com.utazukin.ichaival.needsCoilDecoder
 import com.utazukin.ichaival.reader.PageFragment
 import com.utazukin.ichaival.reader.ReaderActivity
 import com.utazukin.ichaival.reader.ScaleType
@@ -121,21 +121,21 @@ class WebtoonReaderViewHolder(private val view: View, private val activity: Read
             }
 
             val format = getImageFormat(imageFile)
+            val coilRendered = needsCoilDecoder(imageFile)
             mainImage?.let {
-                when (it) {
-                    is PhotoView -> {
+                when {
+                    it is PhotoView -> {
                         loadGif(imageFile, image, it)
                         return@launch
                     }
-                    is SubsamplingScaleImageView -> {
+                    it is SubsamplingScaleImageView && !coilRendered -> {
                         it.setImage(ImageSource.uri(imageFile.absolutePath))
                         return@launch
                     }
-                    else -> {}
                 }
             }
 
-            mainImage = if (isAnimatedImage(imageFile)) {
+            mainImage = if (coilRendered) {
                 PhotoView(activity).also {
                     initializeView(it)
                     loadGif(imageFile, image, it)

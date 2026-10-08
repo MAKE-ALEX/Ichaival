@@ -34,6 +34,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.addLastModifiedToFileCacheKey
 import coil3.request.allowRgb565
 import coil3.request.crossfade
+import com.awxkee.jxlcoder.coil.JxlDecoder
 import com.utazukin.ichaival.database.DatabaseReader
 import com.utazukin.ichaival.database.ReaderTabViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -45,6 +46,7 @@ class ReaderTabViewAdapter(activity: BaseActivity) : PagingDataAdapter<ReaderTab
     private val listener = activity as? OnTabInteractionListener
     private val activityScope = activity as CoroutineScope
     private val coverLoader = activity.imageLoader.newBuilder().components {
+        add(JxlDecoder.Factory())
         add(CoverInterceptor())
         add(
                 OkHttpNetworkFetcherFactory(

@@ -35,6 +35,8 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import com.awxkee.jxlcoder.JxlCoder
+import com.awxkee.jxlcoder.coil.JxlDecoder
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
@@ -180,6 +182,38 @@ fun getImageFormat(imageFile: File) : ImageFormat? {
     }
 }
 
+//JPEG XL files start with either a bare codestream or the ISO BMFF container signature
+private val jxlCodestreamMagic = byteArrayOf(0xFF.toByte(), 0x0A)
+private val jxlContainerMagic = byteArrayOf(
+    0x00, 0x00, 0x00, 0x0C, 0x4A, 0x58, 0x4C, 0x20, 0x0D, 0x0A, 0x87.toByte(), 0x0A
+)
+
+fun isJxlImage(imageFile: File) : Boolean {
+    val header = ByteArray(jxlContainerMagic.size)
+    val bytesRead = imageFile.inputStream().use { it.read(header) }
+    if (bytesRead < jxlCodestreamMagic.size)
+        return false
+
+    return header.copyOfRange(0, jxlCodestreamMagic.size).contentEquals(jxlCodestreamMagic) ||
+            (bytesRead == jxlContainerMagic.size && header.contentEquals(jxlContainerMagic))
+}
+
+//Images that have to be decoded by Coil instead of SubsamplingScaleImageView's own decoders
+fun needsCoilDecoder(imageFile: File) = isAnimatedImage(imageFile) || isJxlImage(imageFile)
+
+//BitmapFactory can't read the bounds of a JPEG XL file, so fall back to the JXL decoder for those
+fun getImageSize(imageFile: File) : Size? {
+    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(imageFile.absolutePath, options)
+    if (options.outWidth > 0 && options.outHeight > 0)
+        return options.outSize
+
+    if (!isJxlImage(imageFile))
+        return null
+
+    return tryOrNull { JxlCoder.getSize(imageFile.readBytes()) }
+}
+
 private fun ByteArray.isAscii(offset: Int, value: String) : Boolean {
     if (size < offset + value.length)
         return false
@@ -227,6 +261,7 @@ fun isLocalFile(path: String) = path.startsWith("/data")
 
 fun ImageLoader.createGifLoader() : ImageLoader {
     return newBuilder().components {
+        add(JxlDecoder.Factory())
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
             add(AnimatedImageDecoder.Factory())
         else {

@@ -21,6 +21,8 @@ package com.utazukin.ichaival.reader
 import android.graphics.*
 import android.os.Build
 import android.util.Size
+import com.awxkee.jxlcoder.JxlCoder
+import com.utazukin.ichaival.isJxlImage
 import com.utazukin.ichaival.reader.PageCompressFormat.Companion.toBitmapFormat
 import com.utazukin.ichaival.toRect
 import kotlinx.coroutines.Dispatchers
@@ -130,6 +132,23 @@ object DualPageHelper {
     }
 
     private fun decodeBitmap(file: File, size: Size) : Bitmap {
+        if (isJxlImage(file)) {
+            //The platform decoders can't handle JPEG XL, so use the JXL decoder for those
+            val bytes = file.readBytes()
+            if (size.width <= 0 || size.height <= 0)
+                return JxlCoder.decode(bytes)
+
+            val decoded = JxlCoder.decodeSampled(bytes, size.width, size.height)
+            if (decoded.width == size.width && decoded.height == size.height)
+                return decoded
+
+            //The merged image is drawn with the requested size as source rect, keep that exact
+            val scaled = Bitmap.createScaledBitmap(decoded, size.width, size.height, true)
+            if (scaled !== decoded)
+                decoded.recycle()
+            return scaled
+        }
+
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             val source = android.graphics.ImageDecoder.createSource(file)
             android.graphics.ImageDecoder.decodeBitmap(source) { decoder, info, _ ->

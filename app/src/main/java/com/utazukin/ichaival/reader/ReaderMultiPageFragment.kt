@@ -21,7 +21,6 @@ package com.utazukin.ichaival.reader
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.PointF
 import android.os.Bundle
 import android.util.Size
@@ -60,10 +59,10 @@ import com.utazukin.ichaival.cacheOrGet
 import com.utazukin.ichaival.createGifLoader
 import com.utazukin.ichaival.downloadCoilImageWithProgress
 import com.utazukin.ichaival.getImageFormat
+import com.utazukin.ichaival.getImageSize
 import com.utazukin.ichaival.getMaxTextureSize
-import com.utazukin.ichaival.isAnimatedImage
 import com.utazukin.ichaival.isLocalFile
-import com.utazukin.ichaival.outSize
+import com.utazukin.ichaival.needsCoilDecoder
 import com.utazukin.ichaival.setDefaultScale
 import com.utazukin.ichaival.tryOrNull
 import kotlinx.coroutines.Deferred
@@ -261,7 +260,7 @@ class ReaderMultiPageFragment : Fragment(), PageFragment {
             }
 
             val format = getImageFormat(imageFile)
-            mainImage = if (isAnimatedImage(imageFile)) {
+            mainImage = if (needsCoilDecoder(imageFile)) {
                 PhotoView(activity).also {
                     initializeView(it)
                     it.load(imageFile, gifLoader) {
@@ -406,9 +405,8 @@ class ReaderMultiPageFragment : Fragment(), PageFragment {
                     displaySingleImageMain(image, page)
                     return@launch
                 }
-                val img = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                BitmapFactory.decodeFile(imgFile.absolutePath, img)
-                if (isAnimatedImage(imgFile)) {
+                val imgSize = getImageSize(imgFile)
+                if (imgSize == null || needsCoilDecoder(imgFile)) {
                     dotherTarget?.cancel()
                     displaySingleImageMain(image, page)
                     return@launch
@@ -421,36 +419,35 @@ class ReaderMultiPageFragment : Fragment(), PageFragment {
                     displaySingleImageMain(image, otherPage)
                     return@launch
                 }
-                val otherImg = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                BitmapFactory.decodeFile(otherImgFile.absolutePath, otherImg)
-                if (isAnimatedImage(otherImgFile)) {
+                val otherImgSize = getImageSize(otherImgFile)
+                if (otherImgSize == null || needsCoilDecoder(otherImgFile)) {
                     displaySingleImageMain(image, otherPage)
                     return@launch
                 }
 
-                if (img.outWidth > img.outHeight || otherImg.outWidth > otherImg.outHeight) {
-                    val otherImageFail = otherImg.outWidth > otherImg.outHeight
+                if (imgSize.width > imgSize.height || otherImgSize.width > otherImgSize.height) {
+                    val otherImageFail = otherImgSize.width > otherImgSize.height
                     displaySingleImageMain(image, if (otherImageFail) otherPage else page)
                 } else {
                     //Scale one of the images to match the smaller one if their heights differ too much.
                     val firstImg: Size
                     val secondImg: Size
                     when {
-                        img.outHeight - otherImg.outHeight < -100 -> {
-                            val ar = otherImg.outWidth / otherImg.outHeight.toFloat()
-                            val width = ceil(img.outHeight * ar).toInt()
-                            secondImg = Size(width, img.outHeight)
-                            firstImg = img.outSize
+                        imgSize.height - otherImgSize.height < -100 -> {
+                            val ar = otherImgSize.width / otherImgSize.height.toFloat()
+                            val width = ceil(imgSize.height * ar).toInt()
+                            secondImg = Size(width, imgSize.height)
+                            firstImg = imgSize
                         }
-                        otherImg.outHeight - img.outHeight < -100 -> {
-                            val ar = img.outWidth / img.outHeight.toFloat()
-                            val width = ceil(otherImg.outHeight * ar).toInt()
-                            firstImg = Size(width, otherImg.outHeight)
-                            secondImg = otherImg.outSize
+                        otherImgSize.height - imgSize.height < -100 -> {
+                            val ar = imgSize.width / imgSize.height.toFloat()
+                            val width = ceil(otherImgSize.height * ar).toInt()
+                            firstImg = Size(width, otherImgSize.height)
+                            secondImg = otherImgSize
                         }
                         else -> {
-                            firstImg = img.outSize
-                            secondImg = otherImg.outSize
+                            firstImg = imgSize
+                            secondImg = otherImgSize
                         }
                     }
 

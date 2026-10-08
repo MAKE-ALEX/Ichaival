@@ -34,6 +34,7 @@ import coil3.load
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.allowRgb565
 import coil3.request.crossfade
+import com.awxkee.jxlcoder.coil.JxlDecoder
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.max
@@ -53,6 +54,7 @@ class ThumbRecyclerViewAdapter(
     private val extractedThumbs: BooleanArray
     private val loader = fragment.requireContext().imageLoader.newBuilder()
         .components {
+            add(JxlDecoder.Factory())
             add(
                     OkHttpNetworkFetcherFactory(
                             callFactory = WebHandler.httpClient.newBuilder()

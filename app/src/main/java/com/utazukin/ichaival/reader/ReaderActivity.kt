@@ -56,6 +56,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import coil3.imageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import com.awxkee.jxlcoder.coil.JxlDecoder
 import com.google.android.material.color.MaterialColors
 import com.utazukin.ichaival.ArchiveDetails
 import com.utazukin.ichaival.BaseActivity
@@ -112,6 +113,7 @@ class ReaderActivity : BaseActivity(), OnFragmentInteractionListener, TabRemoved
     val loader by lazy {
         imageLoader.newBuilder()
             .components {
+                add(JxlDecoder.Factory())
                 add(OkHttpNetworkFetcherFactory(callFactory =
                 WebHandler.httpClient.newBuilder()
                     .addNetworkInterceptor(ProgressInterceptor(ResponseProgressListener(lifecycleScope)))

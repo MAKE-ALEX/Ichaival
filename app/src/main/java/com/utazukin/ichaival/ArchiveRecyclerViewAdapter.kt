@@ -46,6 +46,7 @@ import coil3.request.addLastModifiedToFileCacheKey
 import coil3.request.allowHardware
 import coil3.request.allowRgb565
 import coil3.request.crossfade
+import com.awxkee.jxlcoder.coil.JxlDecoder
 import com.google.android.material.color.MaterialColors
 import com.utazukin.ichaival.database.DatabaseReader
 import com.utazukin.ichaival.database.SearchViewModel
@@ -84,7 +85,10 @@ class ArchiveRecyclerViewAdapter(
     private val listViewType = ListViewType.fromString(context, PreferenceManager.getDefaultSharedPreferences(context).getString(fragment.resources.getString(R.string.archive_list_type_key), ""))
     private val coverLoader = context.imageLoader.newBuilder()
         .coroutineContext(Dispatchers.IO.limitedParallelism(3))
-        .components { add(CoverInterceptor()) }
+        .components {
+            add(JxlDecoder.Factory())
+            add(CoverInterceptor())
+        }
         .build()
     private val itemHeight = (itemWidth * 1.43f).toInt()
 
