@@ -79,6 +79,11 @@ android {
             pickFirsts += ['META-INF/atomicfu.kotlin_module']
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
+        //The ABI split scopes the per ABI APKs but the universal one is assembled from every
+        //ABI present, so drop the x86 libraries here as well to keep it ARM only too
+        jniLibs {
+            excludes += ['lib/x86/**', 'lib/x86_64/**']
+        }
     }
 
     androidResources {
