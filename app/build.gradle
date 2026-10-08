@@ -81,13 +81,15 @@ android {
 // jxl-coder 2.6.1 pulls androidx.core:core-ktx 1.18.0, whose manifest declares
 // minSdkVersion 23; this app still supports API 21, so the manifest merger fails
 // with "uses-sdk:minSdkVersion 21 cannot be smaller than version 23". 1.17.0 is
-// the last release that keeps minSdkVersion 21, and jxl-coder only uses Kotlin
-// stdlib collections from it, so pin the whole androidx.core family there.
+// the last release of these two artifacts that keeps minSdkVersion 21, and
+// jxl-coder only touches Kotlin stdlib collections, so pin them. Other
+// androidx.core artifacts (core-viewtree, released after 1.18.0) are left alone.
 configurations.configureEach {
     resolutionStrategy.eachDependency { details ->
-        if (details.requested.group == 'androidx.core') {
+        if (details.requested.group == 'androidx.core' &&
+                (details.requested.name == 'core' || details.requested.name == 'core-ktx')) {
             details.useVersion '1.17.0'
-            details.because 'androidx.core 1.18.0 raised minSdkVersion to 23, this app supports API 21'
+            details.because 'androidx.core:core-ktx 1.18.0 raised minSdkVersion to 23, this app supports API 21'
         }
     }
 }
