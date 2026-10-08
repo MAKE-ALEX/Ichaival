@@ -336,7 +336,11 @@ private fun downloadCoilImageWithProgress(context: Context, imagePath: String, u
     return ImageRequest.Builder(context).apply {
         addAuthHeader()
         data(imagePath)
-        memoryCachePolicy(CachePolicy.DISABLED)
+        //The memory cache stays on: the file request above only needs the disk cache, but the
+        //reader's own request has to be able to hand back the decoded page when a page is
+        //revisited. JPEG XL has no cheap partial decode, so without this every return to an
+        //earlier page pays for a whole libjxl decode again.
+        memoryCachePolicy(CachePolicy.ENABLED)
         listener(
                 onStart = { ResponseProgressListener.expect(imagePath, uiProgressListener) },
                 onCancel = { ResponseProgressListener.forget(imagePath) },
