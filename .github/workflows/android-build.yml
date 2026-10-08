@@ -52,9 +52,10 @@ jobs:
           if ./gradlew --no-daemon --stacktrace assembleDebug 2>&1 | tee build-debug.log; then
             echo "assembleDebug succeeded"
           else
-            # Gradle logs can only be downloaded with a token, so surface them as an
-            # annotation instead: stack frames are dropped to keep the message readable
-            node -e "const fs=require('fs');const raw=fs.readFileSync('build-debug.log','utf8');const lines=raw.split(/\r?\n/);const kept=lines.filter(l=>!/^\s+at /.test(l));const body='log bytes: '+raw.length+'\n'+kept.join('\n');console.log('::error title=assembleDebug failed::'+body.slice(0,60000).replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
+            # Gradle logs can only be downloaded with a token, so surface the useful
+            # part (failure + compile errors) as an annotation. GitHub truncates
+            # annotations to ~4k chars, so pick the relevant lines only.
+            node -e "const fs=require('fs');const raw=fs.readFileSync('build-debug.log','utf8');const lines=raw.split(/\r?\n/);const noStack=lines.filter(l=>!/^\s+at /.test(l));const i=noStack.findIndex(l=>l.includes('FAILURE: Build failed'));const picked=i>=0?noStack.slice(i,i+40):noStack.slice(-40);const errs=lines.filter(l=>/^e: /.test(l)).slice(0,15);const body=[...picked,'--- compile errors ---',...errs].join('\n').slice(0,3900);console.log('::error title=assembleDebug failed::'+body.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
             exit 1
           fi
 
