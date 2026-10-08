@@ -41,8 +41,21 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Show toolchain
+        run: |
+          java -version
+          ./gradlew --no-daemon --version
+
       - name: Assemble debug
-        run: ./gradlew --no-daemon --stacktrace assembleDebug
+        run: |
+          set -o pipefail
+          if ./gradlew --no-daemon --stacktrace assembleDebug 2>&1 | tee build-debug.log; then
+            echo "assembleDebug succeeded"
+          else
+            # Gradle logs need a token to download, so surface the failure as an annotation
+            node -e "const fs=require('fs');const t=fs.readFileSync('build-debug.log','utf8').slice(-6000);console.log('::error title=assembleDebug failed::'+t.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
+            exit 1
+          fi
 
       # Also compile the release variant so R8/resource shrinking is exercised
       - name: Assemble release
@@ -61,3 +74,11 @@ jobs:
           name: app-release-unsigned
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build-*.log
+          if-no-files-found: ignore
