@@ -63,6 +63,10 @@ jobs:
       - name: Assemble release
         run: ./gradlew --no-daemon --stacktrace assembleRelease
 
+      # The build is split per ABI, so show what actually came out of it
+      - name: List built APKs
+        run: ls -l app/build/outputs/apk/*/*.apk
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
