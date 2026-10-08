@@ -52,8 +52,9 @@ jobs:
           if ./gradlew --no-daemon --stacktrace assembleDebug 2>&1 | tee build-debug.log; then
             echo "assembleDebug succeeded"
           else
-            # Gradle logs need a token to download, so surface the failure as an annotation
-            node -e "const fs=require('fs');const t=fs.readFileSync('build-debug.log','utf8').slice(-6000);console.log('::error title=assembleDebug failed::'+t.replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
+            # Gradle logs can only be downloaded with a token, so surface them as an
+            # annotation instead: stack frames are dropped to keep the message readable
+            node -e "const fs=require('fs');const raw=fs.readFileSync('build-debug.log','utf8');const lines=raw.split(/\r?\n/);const kept=lines.filter(l=>!/^\s+at /.test(l));const body='log bytes: '+raw.length+'\n'+kept.join('\n');console.log('::error title=assembleDebug failed::'+body.slice(0,60000).replace(/%/g,'%25').replace(/\r/g,'').replace(/\n/g,'%0A'))"
             exit 1
           fi
 
