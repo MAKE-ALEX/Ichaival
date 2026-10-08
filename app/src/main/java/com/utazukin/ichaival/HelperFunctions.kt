@@ -35,6 +35,8 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import coil3.request.ImageRequest.Builder
+import coil3.size.Dimension
 import com.awxkee.jxlcoder.JxlCoder
 import com.awxkee.jxlcoder.coil.JxlDecoder
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
@@ -212,6 +214,29 @@ fun getImageSize(imageFile: File) : Size? {
         return null
 
     return tryOrNull { JxlCoder.getSize(imageFile.readBytes()) }
+}
+
+//jxl-coder decodes at full resolution whenever the request leaves the size undefined, which
+//SubsamplingScaleImageView can get away with because it only decodes the tiles it draws but
+//PhotoView cannot: it wants one whole bitmap. Ask for the largest size a page can show at the
+//maximum zoom PhotoView allows, so the decode comes out smaller and the request is still the
+//same pixels on screen.
+private const val MAX_PHOTO_VIEW_ZOOM = 3f
+
+fun Builder.jxlPhotoViewSize(context: Context, imageFile: File) : Builder {
+    val dimensions = getImageSize(imageFile) ?: return this
+    val metrics = context.resources.displayMetrics
+    val width = (max(metrics.widthPixels, metrics.heightPixels) * MAX_PHOTO_VIEW_ZOOM).toInt()
+    val height = (min(metrics.widthPixels, metrics.heightPixels) * MAX_PHOTO_VIEW_ZOOM).toInt()
+
+    if (dimensions.width <= width && dimensions.height <= height)
+        return this
+
+    //Undefined on the narrower side keeps the aspect ratio, Dimension.Pixels would stretch it
+    return if (dimensions.width >= dimensions.height)
+        size(Dimension.Pixels(width), Dimension.Undefined)
+    else
+        size(Dimension.Undefined, Dimension.Pixels(height))
 }
 
 private fun ByteArray.isAscii(offset: Int, value: String) : Boolean {

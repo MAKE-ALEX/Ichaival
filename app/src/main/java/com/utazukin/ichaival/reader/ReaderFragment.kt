@@ -53,7 +53,9 @@ import com.utazukin.ichaival.createGifLoader
 import com.utazukin.ichaival.downloadCoilImageWithProgress
 import com.utazukin.ichaival.getImageFormat
 import com.utazukin.ichaival.getMaxTextureSize
+import com.utazukin.ichaival.isJxlImage
 import com.utazukin.ichaival.isLocalFile
+import com.utazukin.ichaival.jxlPhotoViewSize
 import com.utazukin.ichaival.needsCoilDecoder
 import com.utazukin.ichaival.setDefaultScale
 import kotlinx.coroutines.launch
@@ -177,7 +179,11 @@ class ReaderFragment : Fragment(), PageFragment {
                     initializeView(it)
                     it.load(imageFile, gifLoader) {
                         diskCacheKey(image)
-                        size(Dimension.Undefined, Dimension.Undefined)
+                        //JPEG XL is packed as one bitmap, so let the decoder target the display
+                        if (isJxlImage(imageFile))
+                            jxlPhotoViewSize(requireContext(), imageFile)
+                        else
+                            size(Dimension.Undefined, Dimension.Undefined)
                         listener(
                                 onSuccess = { _, _ ->
                                     pageNum.visibility = View.GONE
