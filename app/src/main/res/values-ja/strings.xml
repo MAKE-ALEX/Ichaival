@@ -40,6 +40,10 @@
     <string name="read_button">読む</string>
     <string name="tag_header">タグ</string>
     <string name="bookmark_label">ブックマーク</string>
+    <string name="reading_history">読書履歴</string>
+    <string name="reading_history_empty">読書履歴はまだありません</string>
+    <string name="reading_history_failed">読書履歴を読み込めませんでした</string>
+    <string name="reading_history_page_count">%1$d / %2$d ページ</string>
     <string name="detail_menu_item">詳細</string>
     <string name="api_key_pref" translatable="false">api_key</string>
     <string name="api_key_pref_name">APIキー</string>

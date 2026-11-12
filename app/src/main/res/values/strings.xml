@@ -41,6 +41,10 @@
     <string name="read_button">Read</string>
     <string name="tag_header">Tags</string>
     <string name="bookmark_label">Bookmarks</string>
+    <string name="reading_history">Reading History</string>
+    <string name="reading_history_empty">No reading history yet.</string>
+    <string name="reading_history_failed">Could not load reading history.</string>
+    <string name="reading_history_page_count">Page %1$d / %2$d</string>
     <string name="detail_menu_item">Details</string>
     <string name="api_key_pref" translatable="false">api_key</string>
     <string name="api_key_pref_name">API Key</string>

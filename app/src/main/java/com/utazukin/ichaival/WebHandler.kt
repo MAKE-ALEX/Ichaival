@@ -84,6 +84,14 @@ data object FailedThumbResult: ThumbResult
 data object CompleteThumbResult: ThumbResult
 data class InProgressThumbResult(val flow: Flow<Int>): ThumbResult
 
+data class ReadingHistoryEntry(
+    val id: String,
+    val title: String,
+    val pageCount: Int,
+    val currentPage: Int,
+    val lastReadTime: Long
+)
+
 object WebHandler {
     private const val connTimeoutMs = 5000L
     private const val readTimeoutMs = 60000L
@@ -398,6 +406,55 @@ object WebHandler {
         val url = if (!isTankId(id)) serverUrlBuilder.addProgress(id, page).build() else serverUrlBuilder.addTankoubonProgress(id, page).build()
         val connection = createServerConnection(url, "PUT", FormBody.Builder().build())
         httpClient.newCall(connection).enqueue()
+    }
+
+    /**
+     * Fetches the archives the server has reading progress for, most recently read first.
+     */
+    suspend fun getReadingHistory(limit: Int = 40): List<ReadingHistoryEntry> {
+        if (!canConnect())
+            return emptyList()
+
+        return withContext(Dispatchers.IO) {
+            // The server keeps "lastread" ordering for its own progress tracking, so this list is the
+            // same one the web reader shows and stays in sync across devices that read the same server.
+            val url = with (serverUrlBuilder) {
+                addSearch()
+                addQueryParameter("filter", "")
+                addQueryParameter("sortby", "lastread")
+                addQueryParameter("order", "asc")
+                addQueryParameter("start", 0)
+                build()
+            }
+
+            val response = tryOrNull {
+                val connection = createServerConnection(url)
+                httpClient.newCall(connection).tryAwait()
+            } ?: return@withContext emptyList()
+
+            if (!response.isSuccessful)
+                return@withContext emptyList()
+
+            val body = tryOrNull { response.body?.string() } ?: return@withContext emptyList()
+
+            tryOrNull {
+                val json = JSONObject(body)
+                val data = json.optJSONArray("data") ?: JSONArray(body)
+                List(data.length()) { index ->
+                    val entry = data.getJSONObject(index)
+                    ReadingHistoryEntry(
+                        entry.getString("arcid"),
+                        entry.optString("title", ""),
+                        entry.optInt("pagecount", 0),
+                        entry.optInt("progress", 0) - 1,
+                        entry.optLong("lastreadtime", 0L)
+                    )
+                }
+            }.orEmpty()
+                .filter { it.currentPage > 0 || it.lastReadTime > 0L }
+                .sortedByDescending { it.lastReadTime }
+                .take(limit)
+        }
     }
 
     suspend fun getAllArchives(): InputStream? {
