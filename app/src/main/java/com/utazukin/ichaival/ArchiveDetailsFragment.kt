@@ -50,6 +50,7 @@ import coil3.load
 import coil3.request.addLastModifiedToFileCacheKey
 import coil3.request.allowHardware
 import coil3.request.allowRgb565
+import com.awxkee.jxlcoder.coil.JxlDecoder
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayout
@@ -70,7 +71,12 @@ class ArchiveDetailsFragment : Fragment(), TabRemovedListener, TabsClearedListen
     private lateinit var downloadButton: Button
     private var archive: MetaArchive? = null
     private var tagListener: TagInteractionListener? = null
-    private val coverLoader by lazy { requireContext().imageLoader.newBuilder().components { add(CoverInterceptor()) }.build() }
+    private val coverLoader by lazy {
+        requireContext().imageLoader.newBuilder().components {
+            add(JxlDecoder.Factory())
+            add(CoverInterceptor())
+        }.build()
+    }
     private val isLocalSearch by lazy {
         val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
         prefs.getBoolean(getString(R.string.local_search_key), false)
@@ -402,15 +408,23 @@ class ArchiveDetailsFragment : Fragment(), TabRemovedListener, TabsClearedListen
             true
         }
 
-        thumbView.load(DatabaseReader.getArchiveImagePath(archiveId), coverLoader) {
-            allowRgb565(true)
-            allowHardware(false)
-            addLastModifiedToFileCacheKey(true)
-            listener(
-                    onSuccess = { _, _ -> requireActivity().supportStartPostponedEnterTransition() },
-                    onError = { _, _ -> requireActivity().supportStartPostponedEnterTransition() },
-                    onCancel = { requireActivity().supportStartPostponedEnterTransition() }
-            )
+        // The archive list only caches thumbnails for the cards it has shown, so an archive opened
+        // from "random" (or from anywhere else) may not have a local thumbnail yet. Fetch it if needed.
+        val cover = tryOrNull { DatabaseReader.getArchiveImage(archive, requireContext()) }
+        if (cover == null) {
+            if (isAdded)
+                requireActivity().supportStartPostponedEnterTransition()
+        } else {
+            thumbView.load(cover, coverLoader) {
+                allowRgb565(true)
+                allowHardware(false)
+                addLastModifiedToFileCacheKey(true)
+                listener(
+                        onSuccess = { _, _ -> requireActivity().supportStartPostponedEnterTransition() },
+                        onError = { _, _ -> requireActivity().supportStartPostponedEnterTransition() },
+                        onCancel = { requireActivity().supportStartPostponedEnterTransition() }
+                )
+            }
         }
     }
 

@@ -194,6 +194,10 @@
     <string name="selected_archives">%1$d selected</string>
     <string name="deleted_archive">Deleted "%1$s"</string>
     <string name="delete_archive_prompt">Delete "%1$s"?</string>
+    <string name="delete_archive_fail_message">Could not delete the archive.</string>
+    <string name="delete_archives_fail_message">Some archives could not be deleted.</string>
+    <string name="delete_archive_auth_message">The server rejected the request. Check the password/API key in the settings.</string>
+    <string name="delete_archive_refused_message">The server could not delete this archive. Its file may have been moved or deleted already.</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="log_delete_message">Log deleted!</string>

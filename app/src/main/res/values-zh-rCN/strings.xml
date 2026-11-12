@@ -177,6 +177,10 @@
     <string name="selected_archives">%1$d 选中</string>
     <string name="deleted_archive">已删除 "%1$s"</string>
     <string name="delete_archive_prompt">删除 "%1$s"?</string>
+    <string name="delete_archive_fail_message">删除档案失败。</string>
+    <string name="delete_archives_fail_message">部分档案删除失败。</string>
+    <string name="delete_archive_auth_message">服务器拒绝了请求，请检查设置中的密码/API Key。</string>
+    <string name="delete_archive_refused_message">服务器未能删除该档案，文件可能已被移动或删除。</string>
     <string name="yes">是</string>
     <string name="no">否</string>
     <string name="log_delete_message">日志已删除!</string>

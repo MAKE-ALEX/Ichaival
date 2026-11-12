@@ -239,20 +239,28 @@ object WebHandler {
     }
 
     suspend fun deleteArchives(ids: List<String>) : List<String> {
-        if (!canConnect())
+        if (!canConnect()) {
+            notifyError(R.string.delete_archive_fail_message)
             return emptyList()
+        }
 
         return coroutineScope {
-            val jobs = List(ids.size) { async { if (deleteArchive(ids[it], false)) ids[it] else null } }
-            jobs.awaitAll().filterNotNull()
+            val jobs = List(ids.size) { async { if (deleteArchive(ids[it], false, false)) ids[it] else null } }
+            val deleted = jobs.awaitAll().filterNotNull()
+            if (deleted.size != ids.size)
+                notifyError(R.string.delete_archives_fail_message)
+            deleted
         }
     }
 
-    suspend fun deleteArchive(archiveId: String) = withContext(Dispatchers.IO) { deleteArchive(archiveId, true) }
+    suspend fun deleteArchive(archiveId: String) = withContext(Dispatchers.IO) { deleteArchive(archiveId, true, true) }
 
-    private suspend fun deleteArchive(archiveId: String, checkConnection: Boolean) : Boolean {
-        if (checkConnection && !canConnect())
+    private suspend fun deleteArchive(archiveId: String, checkConnection: Boolean, notifyErrors: Boolean) : Boolean {
+        if (checkConnection && !canConnect()) {
+            if (notifyErrors)
+                notifyError(R.string.delete_archive_fail_message)
             return false
+        }
 
         val url = if (!isTankId(archiveId))
             serverUrlBuilder.addDeleteArchive(archiveId).build()
@@ -260,12 +268,43 @@ object WebHandler {
             serverUrlBuilder.addTankoubonDelete(archiveId).build()
         val connection = createServerConnection(url, "DELETE")
         val response = httpClient.newCall(connection).tryAwait()
-        return response?.use {
-            if (!it.isSuccessful)
-                false
-            else
-                JSONObject(it.body.string()).optInt("success", 0) == 1
-        } == true
+        if (response == null) {
+            if (notifyErrors)
+                notifyError(R.string.delete_archive_fail_message)
+            return false
+        }
+
+        return response.use {
+            when {
+                // The server no longer knows this archive, so the local copy can go too.
+                it.code == 404 -> true
+                it.code == 401 || it.code == 403 -> {
+                    if (notifyErrors)
+                        notifyError(R.string.delete_archive_auth_message)
+                    false
+                }
+                !it.isSuccessful -> {
+                    if (notifyErrors)
+                        handleErrorMessage(it.code, R.string.delete_archive_fail_message)
+                    false
+                }
+                else -> {
+                    // Some servers answer with an empty or non-JSON body; only an explicit
+                    // success=0/false means the deletion was refused.
+                    val json = tryOrNull { JSONObject(it.body.string()) }
+                    val success = when (val value = json?.opt("success")) {
+                        null -> true
+                        is Boolean -> value
+                        is Number -> value.toInt() == 1
+                        is String -> value == "1" || value.equals("true", true)
+                        else -> true
+                    }
+                    if (!success && notifyErrors)
+                        notifyError(R.string.delete_archive_refused_message)
+                    success
+                }
+            }
+        }
     }
 
     suspend fun removeFromCategory(categoryId: String, archiveId: String) : Boolean {
