@@ -525,7 +525,13 @@ object DatabaseReader {
 
     suspend fun getArchives(offset: Int, limit: Int) = database.archiveDao().getArchives(offset, limit)
 
-    fun getRandomSource(filter: String, categoryId: String, count: Int, status: StatusFilter, groupTanks: Boolean): PagingSource<Int, ArchiveListEntry> {
+    fun getRandomSource(filter: String, categoryId: String, count: Int, status: StatusFilter, groupTanks: Boolean): PagingSource<Int, ArchiveListEntry> =
+        database.archiveDao().getRandomSource(buildRandomQuery(filter, categoryId, count, status, groupTanks))
+
+    suspend fun getRandomArchives(filter: String, categoryId: String, count: Int, status: StatusFilter, groupTanks: Boolean = false): List<ArchiveListEntry> =
+        database.archiveDao().getRandomList(buildRandomQuery(filter, categoryId, count, status, groupTanks))
+
+    private fun buildRandomQuery(filter: String, categoryId: String, count: Int, status: StatusFilter, groupTanks: Boolean): SimpleSQLiteQuery {
         val queryBuilder = StringBuilder("Select archive.id, title, pageCount from archive")
         val args = mutableListOf<Any>()
 
@@ -558,7 +564,7 @@ object DatabaseReader {
 
         args.add(count)
         queryBuilder.append(" order by random() limit ?")
-        return database.archiveDao().getRandomSource(SimpleSQLiteQuery(queryBuilder.toString(), args.toTypedArray()))
+        return SimpleSQLiteQuery(queryBuilder.toString(), args.toTypedArray())
     }
 
     suspend fun getRandom(search: String, status: StatusFilter, categoryId: String, excludeBookmarked: Boolean = false): Archive? {
@@ -709,7 +715,7 @@ object DatabaseReader {
 
     suspend fun getArchiveImage(archive: MetaArchive, context: Context) = getArchiveImage(archive.id, context)
 
-    private suspend fun getArchiveImage(id: String, context: Context, page: Int? = null) : File? {
+    suspend fun getArchiveImage(id: String, context: Context, page: Int? = null) : File? {
         val thumbDir = getThumbDir(context.noBackupFilesDir, id)
 
         val image = File(thumbDir, "$id.jpg")

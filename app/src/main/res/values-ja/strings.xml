@@ -40,6 +40,10 @@
     <string name="read_button">読む</string>
     <string name="tag_header">タグ</string>
     <string name="bookmark_label">ブックマーク</string>
+    <string name="reading_history">読書履歴</string>
+    <string name="reading_history_empty">読書履歴はまだありません</string>
+    <string name="reading_history_failed">読書履歴を読み込めませんでした</string>
+    <string name="reading_history_page_count">%1$d / %2$d ページ</string>
     <string name="detail_menu_item">詳細</string>
     <string name="api_key_pref" translatable="false">api_key</string>
     <string name="api_key_pref_name">APIキー</string>
@@ -176,6 +180,10 @@
     <string name="selected_archives">%1$dが選択されました</string>
     <string name="deleted_archive">"%1$s"を削除</string>
     <string name="delete_archive_prompt">"%1$s"を削除しますか？</string>
+    <string name="delete_archive_fail_message">アーカイブを削除できませんでした。</string>
+    <string name="delete_archives_fail_message">一部のアーカイブを削除できませんでした。</string>
+    <string name="delete_archive_auth_message">サーバーに拒否されました。設定のパスワード/APIキーを確認してください。</string>
+    <string name="delete_archive_refused_message">サーバーがアーカイブを削除できませんでした。ファイルが移動または削除された可能性があります。</string>
     <string name="yes">はい</string>
     <string name="no">いいえ</string>
     <string name="log_delete_message">ログが削除されました！</string>
@@ -198,6 +206,9 @@
     <string name="dual_page_display">ページ %1$d-%2$d/%3$d</string>
     <string name="random_count_menu">カウントの変更</string>
     <string name="random_header">ランダムアーカイブ</string>
+    <string name="random_picks">ランダムピック</string>
+    <string name="random_picks_empty">アーカイブが見つかりません。</string>
+    <string name="random_picks_pages">%1$d ページ</string>
     <string name="random_count_pref" translatable="false">random_count_pref</string>
     <string name="random_count_pref_title">ランダムアーカイブカウント</string>
     <string name="random_count_pref_summary">ランダムボタンを押したときに選択する必要があるランダムアーカイブの量。 現在: %s</string>

@@ -41,6 +41,10 @@
     <string name="read_button">阅读</string>
     <string name="tag_header">标签</string>
     <string name="bookmark_label">书签</string>
+    <string name="reading_history">阅读历史</string>
+    <string name="reading_history_empty">暂无阅读记录</string>
+    <string name="reading_history_failed">无法加载阅读记录</string>
+    <string name="reading_history_page_count">第 %1$d / %2$d 页</string>
     <string name="detail_menu_item">详细</string>
     <string name="api_key_pref">api_key</string>
     <string name="api_key_pref_name">API密钥</string>
@@ -177,6 +181,10 @@
     <string name="selected_archives">%1$d 选中</string>
     <string name="deleted_archive">已删除 "%1$s"</string>
     <string name="delete_archive_prompt">删除 "%1$s"?</string>
+    <string name="delete_archive_fail_message">删除档案失败。</string>
+    <string name="delete_archives_fail_message">部分档案删除失败。</string>
+    <string name="delete_archive_auth_message">服务器拒绝了请求，请检查设置中的密码/API Key。</string>
+    <string name="delete_archive_refused_message">服务器未能删除该档案，文件可能已被移动或删除。</string>
     <string name="yes">是</string>
     <string name="no">否</string>
     <string name="log_delete_message">日志已删除!</string>
@@ -199,6 +207,9 @@
     <string name="dual_page_display">页 %1$d-%2$d/%3$d</string>
     <string name="random_count_menu">更改计数</string>
     <string name="random_header">随机档案</string>
+    <string name="random_picks">随机精选</string>
+    <string name="random_picks_empty">没有找到档案。</string>
+    <string name="random_picks_pages">%1$d 页</string>
     <string name="random_count_pref" translatable="false">random_count_pref</string>
     <string name="random_count_pref_title">随机档案计数</string>
     <string name="random_count_pref_summary">按下随机按钮时应选择的随机档案数量。 当前为: %s</string>

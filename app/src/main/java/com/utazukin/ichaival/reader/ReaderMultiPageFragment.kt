@@ -52,6 +52,7 @@ import coil3.size.Dimension
 import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.github.chrisbanes.photoview.PhotoView
+import com.utazukin.ichaival.App
 import com.utazukin.ichaival.ImageDecoder
 import com.utazukin.ichaival.ImageRegionDecoder
 import com.utazukin.ichaival.MetaArchive
@@ -61,10 +62,14 @@ import com.utazukin.ichaival.createGifLoader
 import com.utazukin.ichaival.downloadCoilImageWithProgress
 import com.utazukin.ichaival.getImageFormat
 import com.utazukin.ichaival.getMaxTextureSize
+import com.utazukin.ichaival.database.DatabaseReader
 import com.utazukin.ichaival.isAnimatedImage
+import com.utazukin.ichaival.isJxlFile
 import com.utazukin.ichaival.isLocalFile
+import com.utazukin.ichaival.loadJxlBitmap
 import com.utazukin.ichaival.outSize
 import com.utazukin.ichaival.setDefaultScale
+import com.utazukin.ichaival.transcodeJxlPage
 import com.utazukin.ichaival.tryOrNull
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -251,12 +256,29 @@ class ReaderMultiPageFragment : Fragment(), PageFragment {
             val imageFile = withContext(Dispatchers.IO) {
                 if (!isLocalFile(image)) {
                     val request = downloadCoilImageWithProgress(requireContext(), image) { progressBar.progress = it }
-                    loader.cacheOrGet(request)
+                    loader.cacheOrGet(request, false)
                 } else File(image)
             }
 
             if (imageFile == null) {
                 showErrorMessage()
+                return@launch
+            }
+
+            // JPEG XL pages go straight from the decoded bitmap into the view: writing a JPEG first
+            // would add an encode plus a second decode to every page turn.
+            if (isJxlFile(imageFile)) {
+                val bitmap = withContext(Dispatchers.IO) { loadJxlBitmap(imageFile) }
+                if (bitmap == null) {
+                    showErrorMessage()
+                    return@launch
+                }
+
+                mainImage = createScaleImageView().also {
+                    it.setImage(ImageSource.bitmap(bitmap))
+                }.also { setupImageTapEvents(it) }
+
+                prefetchNeighbours()
                 return@launch
             }
 
@@ -280,38 +302,75 @@ class ReaderMultiPageFragment : Fragment(), PageFragment {
                     }
                 }
             } else {
-                SubsamplingScaleImageView(activity).also {
-                    initializeView(it)
-
-                    it.setMaxTileSize(getMaxTextureSize())
-                    it.setMinimumTileDpi(160)
-
+                createScaleImageView().also {
                     if (format != null) {
                         it.setBitmapDecoderClass(ImageDecoder::class.java)
                         it.setRegionDecoderClass(ImageRegionDecoder::class.java)
                     }
 
-                    it.setOnImageEventListener(object : SubsamplingScaleImageView.DefaultOnImageEventListener() {
-                        override fun onReady() {
-                            pageNum.visibility = View.GONE
-                            progressBar.visibility = View.GONE
-                            view?.run {
-                                setOnClickListener(null)
-                                setOnLongClickListener(null)
-                            }
-                            updateScaleType(it, currentScaleType)
-                        }
-                        override fun onImageLoadError(e: Exception?) {
-                            showErrorMessage()
-                            it.visibility = View.GONE
-                        }
-                    })
-
                     it.setImage(ImageSource.uri(imageFile.absolutePath))
                 }
             }.also { setupImageTapEvents(it) }
+
+            prefetchNeighbours()
         }
     }
+
+    private fun createScaleImageView() : SubsamplingScaleImageView {
+        return SubsamplingScaleImageView(activity).also {
+            initializeView(it)
+
+            it.setMaxTileSize(getMaxTextureSize())
+            it.setMinimumTileDpi(160)
+
+            it.setOnImageEventListener(object : SubsamplingScaleImageView.DefaultOnImageEventListener() {
+                override fun onReady() {
+                    pageNum.visibility = View.GONE
+                    progressBar.visibility = View.GONE
+                    view?.run {
+                        setOnClickListener(null)
+                        setOnLongClickListener(null)
+                    }
+                    updateScaleType(it, currentScaleType)
+                }
+                override fun onImageLoadError(e: Exception?) {
+                    showErrorMessage()
+                    it.visibility = View.GONE
+                }
+            })
+        }
+    }
+
+    // Decode the pages this one is most likely to be followed by while it is still on screen;
+    // otherwise the JPEG XL decode of the next page lands right on the swipe.
+    private fun prefetchNeighbours() {
+        val archive = (activity as? ReaderActivity)?.archive ?: return
+        if (prefetchedFor == page)
+            return
+        prefetchedFor = page
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val pages = tryOrNull { DatabaseReader.getPageList(archive.id) } ?: return@launch
+            for (offset in intArrayOf(1, 2, -1)) {
+                val target = page + offset
+                if (target !in pages.indices)
+                    continue
+
+                val url = pages[target]
+                if (isLocalFile(url))
+                    continue
+
+                val file = tryOrNull {
+                    loader.cacheOrGet(downloadCoilImageWithProgress(App.context, url) {}, false)
+                } ?: continue
+
+                if (isJxlFile(file))
+                    loadJxlBitmap(file)
+            }
+        }
+    }
+
+    private var prefetchedFor = -1
 
     private fun createImageView(mergedPath: String, useNewDecoder: Boolean = true) {
         mainImage = SubsamplingScaleImageView(activity).apply {
@@ -392,7 +451,7 @@ class ReaderMultiPageFragment : Fragment(), PageFragment {
                     }
                     val dtarget = async { tryOrNull { loader.cacheOrGet(target) } }
                     imgFile = dtarget.await()
-                } else imgFile = File(image)
+                } else imgFile = transcodeJxlPage(File(image))
 
                 if (!isLocalFile(otherImage)) {
                     val otherTarget = downloadCoilImageWithProgress(requireActivity(), otherImage) {
@@ -400,7 +459,7 @@ class ReaderMultiPageFragment : Fragment(), PageFragment {
                         progressBar.progress = ((targetProgess + otherProgress) * 0.9f).toInt()
                     }
                     dotherTarget = async { tryOrNull { loader.cacheOrGet(otherTarget) } }
-                } else otherImgFile = File(otherImage)
+                } else otherImgFile = transcodeJxlPage(File(otherImage))
 
                 if (imgFile == null) {
                     displaySingleImageMain(image, page)

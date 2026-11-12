@@ -23,6 +23,7 @@ import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
@@ -54,6 +55,7 @@ abstract class BaseActivity : AppCompatActivity(), DatabaseMessageListener, OnTa
     protected lateinit var drawerLayout: DrawerLayout
     protected lateinit var navView: NavigationView
     protected lateinit var tabView: RecyclerView
+    private lateinit var historyEmptyView: TextView
     private val backPressedCallback = object: OnBackPressedCallback(false) {
         override fun handleOnBackPressed() = handleBackPressed()
     }
@@ -107,6 +109,7 @@ abstract class BaseActivity : AppCompatActivity(), DatabaseMessageListener, OnTa
             override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
             override fun onDrawerOpened(drawerView: View) {
                 backPressedCallback.isEnabled = true
+                (tabView.adapter as? ReadingHistoryAdapter)?.reload()
             }
             override fun onDrawerClosed(drawerView: View) {
                 backPressedCallback.isEnabled = false
@@ -116,41 +119,23 @@ abstract class BaseActivity : AppCompatActivity(), DatabaseMessageListener, OnTa
 
         navView = drawerLayout.findViewById(R.id.nav_view)
         tabView = findViewById(R.id.tab_view)
+        historyEmptyView = findViewById(R.id.history_empty)
         with(tabView) {
             layoutManager = LinearLayoutManager(context)
-            adapter = ReaderTabViewAdapter(this@BaseActivity).also { setupReaderTabAdapter(it) }
+            adapter = ReadingHistoryAdapter(this@BaseActivity)
 
             val dividerDecoration = MaterialDividerItemDecoration(context, LinearLayoutManager.VERTICAL)
             addItemDecoration(dividerDecoration)
         }
+    }
 
-        val closeButton: ImageView = findViewById(R.id.clear_bookmark)
-        closeButton.setOnClickListener{
-            launch {
-                val bookmarks = DatabaseReader.getBookmarks()
-                if (bookmarks.isNotEmpty()) {
-                    with(Snackbar.make(navView, R.string.cleared_bookmarks_snack, Snackbar.LENGTH_LONG)) {
-                        ReaderTabHolder.removeAll()
-                        setAction(R.string.undo) { ReaderTabHolder.addReaderTabs(bookmarks) }
-                        show()
-                    }
-                }
-            }
-        }
+    internal fun openHistoryEntry(id: String, page: Int) {
+        drawerLayout.closeDrawers()
+        startReaderActivity(id, page)
+    }
 
-        val touchHelper = BookmarkTouchHelper(this) { tab, position, direction ->
-            when (direction) {
-                ItemTouchHelper.LEFT -> handleTabSwipeLeft(tab, position)
-                ItemTouchHelper.RIGHT -> {
-                    with(Snackbar.make(navView, R.string.bookmark_removed_snack, Snackbar.LENGTH_LONG)) {
-                        ReaderTabHolder.removeTab(tab)
-                        setAction(R.string.undo) { ReaderTabHolder.insertTab(tab) }
-                        show()
-                    }
-                }
-            }
-        }
-        ItemTouchHelper(touchHelper).attachToRecyclerView(tabView)
+    internal fun updateHistoryEmptyState(empty: Boolean) {
+        historyEmptyView.visibility = if (empty) View.VISIBLE else View.GONE
     }
 
     protected open fun handleTabSwipeLeft(tab: ReaderTab, position: Int) {
@@ -185,7 +170,8 @@ abstract class BaseActivity : AppCompatActivity(), DatabaseMessageListener, OnTa
 
     override fun onStop() {
         super.onStop()
-        drawerLayout.closeDrawers()
+        if (::drawerLayout.isInitialized)
+            drawerLayout.closeDrawers()
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
@@ -229,7 +215,7 @@ abstract class BaseActivity : AppCompatActivity(), DatabaseMessageListener, OnTa
         }
     }
 
-    protected fun startReaderActivity(id: String, page: Int = 0) {
+    internal fun startReaderActivity(id: String, page: Int = 0) {
         val intent = Intent(this, ReaderActivity::class.java)
         val bundle = Bundle()
         bundle.putString("id", id)

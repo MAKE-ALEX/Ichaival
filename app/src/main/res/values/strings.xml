@@ -41,6 +41,10 @@
     <string name="read_button">Read</string>
     <string name="tag_header">Tags</string>
     <string name="bookmark_label">Bookmarks</string>
+    <string name="reading_history">Reading History</string>
+    <string name="reading_history_empty">No reading history yet.</string>
+    <string name="reading_history_failed">Could not load reading history.</string>
+    <string name="reading_history_page_count">Page %1$d / %2$d</string>
     <string name="detail_menu_item">Details</string>
     <string name="api_key_pref" translatable="false">api_key</string>
     <string name="api_key_pref_name">API Key</string>
@@ -194,6 +198,10 @@
     <string name="selected_archives">%1$d selected</string>
     <string name="deleted_archive">Deleted "%1$s"</string>
     <string name="delete_archive_prompt">Delete "%1$s"?</string>
+    <string name="delete_archive_fail_message">Could not delete the archive.</string>
+    <string name="delete_archives_fail_message">Some archives could not be deleted.</string>
+    <string name="delete_archive_auth_message">The server rejected the request. Check the password/API key in the settings.</string>
+    <string name="delete_archive_refused_message">The server could not delete this archive. Its file may have been moved or deleted already.</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="log_delete_message">Log deleted!</string>
@@ -218,6 +226,9 @@
     <string name="dual_page_display">Pages %1$d-%2$d/%3$d</string>
     <string name="random_count_menu">Change Count</string>
     <string name="random_header">Random Archives</string>
+    <string name="random_picks">Random Picks</string>
+    <string name="random_picks_empty">No archives found.</string>
+    <string name="random_picks_pages">%1$d pages</string>
     <string name="random_count_pref" translatable="false">random_count_pref</string>
     <string name="random_count_pref_title">Random Archive Count</string>
     <string name="random_count_pref_summary">The amount of random archives that should be picked when pressing the random button. Current: %s</string>

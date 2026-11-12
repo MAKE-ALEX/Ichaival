@@ -160,6 +160,9 @@ interface ArchiveDao {
     @RawQuery(observedEntities = [ArchiveFull::class])
     fun getRandomSource(query: SupportSQLiteQuery) : PagingSource<Int, ArchiveListEntry>
 
+    @RawQuery
+    suspend fun getRandomList(query: SupportSQLiteQuery) : List<ArchiveListEntry>
+
     @RawQuery(observedEntities = [ArchiveFull::class])
     fun getSearchSource(query: SupportSQLiteQuery) : PagingSource<Int, ArchiveListEntry>
 

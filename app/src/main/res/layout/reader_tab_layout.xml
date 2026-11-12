@@ -34,22 +34,11 @@
 
         <TextView
             android:id="@+id/tag_label"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="0.9"
             android:paddingTop="10dp"
             android:paddingBottom="10dp"
-            android:text="@string/bookmark_label" />
-
-        <ImageView
-            android:id="@+id/clear_bookmark"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.1"
-            android:paddingTop="8dp"
-            android:paddingBottom="7dp"
-            android:scaleType="fitEnd"
-            app:srcCompat="@drawable/ic_clear_black_24dp" />
+            android:text="@string/reading_history" />
 
     </LinearLayout>
 
@@ -58,6 +47,15 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="?android:attr/listDivider" />
+
+    <TextView
+        android:id="@+id/history_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="@string/reading_history_empty"
+        android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/tab_view"

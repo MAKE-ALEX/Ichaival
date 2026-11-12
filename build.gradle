@@ -26,8 +26,11 @@ plugins {
 allprojects {
     repositories {
         google()
-        maven { url "https://jitpack.io" }
+        // Maven Central has to be searched before JitPack: JitPack answers for any
+        // "io.github.<user>:<repo>" coordinate and would otherwise shadow real
+        // Central artifacts such as io.github.awxkee:jxl-coder
         mavenCentral()
+        maven { url "https://jitpack.io" }
     }
 }
 

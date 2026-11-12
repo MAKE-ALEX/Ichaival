@@ -39,6 +39,7 @@ import com.utazukin.ichaival.ThumbRecyclerViewAdapter.ThumbInteractionListener
 import com.utazukin.ichaival.database.DatabaseReader
 import com.utazukin.ichaival.reader.ReaderActivity
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 const val FROM_READER_PAGE = "READER_PAGE"
 
@@ -112,39 +113,40 @@ class ArchiveDetails : BaseActivity(), TagInteractionListener, ThumbInteractionL
                     }
                 }
             }
-            R.id.delete_archive_item -> {
-                archiveId?.let {
-                    launch {
-                        DatabaseReader.getArchive(it)?.let { arc ->
-                            val builder = AlertDialog.Builder(this@ArchiveDetails).apply {
-                                setTitle(R.string.delete_archive_item)
-                                setMessage(getString(R.string.delete_archive_prompt, arc.title))
-                                setPositiveButton(R.string.yes) { dialog, _ ->
-                                    dialog.dismiss()
-                                    lifecycleScope.launch {
-                                        val success = WebHandler.deleteArchive(it)
-                                        if (success) {
-                                            Toast.makeText(applicationContext, getString(R.string.deleted_archive, arc.title), Toast.LENGTH_SHORT).show()
-                                            DatabaseReader.deleteArchive(it)
-                                            finish()
-                                        }
-                                    }
-                                }
-
-                                setNegativeButton(R.string.no) { dialog, _ -> dialog.dismiss() }
-                            }
-                            val dialog = builder.create()
-                            dialog.show()
-                        }
-                    }
-                }
-            }
+            R.id.delete_archive_item -> deleteArchive()
             android.R.id.home -> {
                 onBackPressedDispatcher.onBackPressed()
                 return true
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun deleteArchive() {
+        val id = archiveId ?: return
+
+        launch {
+            // Resolving a tank walks its whole tree, so don't let a bad database row stop us
+            // from showing the dialog: fall back to the id as the title.
+            val archive = tryOrNull { withTimeoutOrNull(4000) { DatabaseReader.getArchive(id) } }
+            val title = archive?.title ?: id
+
+            AlertDialog.Builder(this@ArchiveDetails).apply {
+                setTitle(R.string.delete_archive_item)
+                setMessage(getString(R.string.delete_archive_prompt, title))
+                setPositiveButton(R.string.yes) { dialog, _ ->
+                    dialog.dismiss()
+                    lifecycleScope.launch {
+                        if (WebHandler.deleteArchive(id)) {
+                            Toast.makeText(applicationContext, getString(R.string.deleted_archive, title), Toast.LENGTH_SHORT).show()
+                            DatabaseReader.deleteArchive(id)
+                            finish()
+                        }
+                    }
+                }
+                setNegativeButton(R.string.no) { dialog, _ -> dialog.dismiss() }
+            }.create().show()
+        }
     }
 
     suspend fun extractArchive(id: String) {
