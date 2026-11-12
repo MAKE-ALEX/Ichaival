@@ -56,6 +56,7 @@ import com.utazukin.ichaival.getMaxTextureSize
 import com.utazukin.ichaival.isAnimatedImage
 import com.utazukin.ichaival.isLocalFile
 import com.utazukin.ichaival.setDefaultScale
+import com.utazukin.ichaival.transcodeJxlPage
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -164,7 +165,7 @@ class ReaderFragment : Fragment(), PageFragment {
                 }
                 imageFile = loader.cacheOrGet(request)
             } else
-                imageFile = File(image)
+                imageFile = transcodeJxlPage(File(image))
 
             if (imageFile == null) {
                 showErrorMessage()

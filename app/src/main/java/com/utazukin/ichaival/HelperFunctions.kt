@@ -22,10 +22,13 @@ import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Resources
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.os.Build
 import android.util.DisplayMetrics
+import android.util.Log
+import android.util.LruCache
 import android.util.Size
 import androidx.preference.PreferenceManager
 import coil3.ImageLoader
@@ -35,6 +38,10 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import com.awxkee.jxlcoder.JxlCoder
+import com.awxkee.jxlcoder.JxlResizeFilter
+import com.awxkee.jxlcoder.PreferredColorConfig
+import com.awxkee.jxlcoder.ScaleMode
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
@@ -43,6 +50,7 @@ import com.hippo.image.ImageInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 import java.util.Stack
 import javax.microedition.khronos.egl.EGL10
 import javax.microedition.khronos.egl.EGLConfig
@@ -240,16 +248,107 @@ val ImageLoader.diskCacheSize get() = diskCache?.size ?: 0
 
 fun ImageLoader.clearDiskCache() = diskCache?.clear()
 
-suspend fun ImageLoader.cacheOrGet(request: ImageRequest) : File? {
+suspend fun ImageLoader.cacheOrGet(request: ImageRequest, transcodeJxl: Boolean = true) : File? {
     return withContext(Dispatchers.IO) {
         val cache = diskCache?.openSnapshot(request.data as String)?.use { it.data.toFile() }
-        if (cache != null)
+        val file = if (cache != null)
             cache
         else {
             execute(request)
             diskCache?.openSnapshot(request.data as String)?.use { it.data.toFile() }
         }
+
+        if (transcodeJxl) file?.let { transcodeJxlPage(it) } else file
     }
+}
+
+// The reader hands pages to SubsamplingScaleImageView, which decodes them with BitmapRegionDecoder
+// and therefore cannot open JPEG XL. Some archives simply contain .jxl pages, so decode those once
+// with libjxl and keep a JPEG copy that the reader can actually load.
+fun transcodeJxlPage(page: File) : File? {
+    if (!isJxlFile(page))
+        return page
+
+    val key = page.absolutePath.hashCode().toString(16)
+    val target = File(File(App.context.cacheDir, "jxl-pages"), "$key-${page.nameWithoutExtension}.jpg")
+    if (target.isFile && target.lastModified() >= page.lastModified())
+        return target
+
+    val bitmap = tryOrNull { decodeJxlPage(page) }
+    if (bitmap == null) {
+        Log.e("HelperFunctions", "Could not decode JPEG XL page ${page.name}")
+        return null
+    }
+
+    val success = tryOrNull {
+        target.parentFile?.mkdirs()
+        FileOutputStream(target).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it) }
+    } ?: false
+    bitmap.recycle()
+
+    if (!success || !target.isFile) {
+        Log.e("HelperFunctions", "Could not write decoded page ${target.name}")
+        return null
+    }
+
+    return target
+}
+
+fun isJxlFile(file: File) : Boolean {
+    val header = tryOrNull {
+        file.inputStream().use { stream -> ByteArray(12).also { stream.read(it) } }
+    } ?: return false
+
+    // ISO BMFF container: 00 00 00 0C 'JXL ' 0D 0A 87 0A
+    if (header.size >= 12 &&
+        header[4] == 'J'.code.toByte() && header[5] == 'X'.code.toByte() &&
+        header[6] == 'L'.code.toByte() && header[7] == ' '.code.toByte())
+        return true
+
+    // A bare codestream starts with FF 0A
+    return header.size >= 2 && header[0] == 0xFF.toByte() && header[1] == 0x0A.toByte()
+}
+private fun decodeJxlPage(page: File) : Bitmap? {
+    val bytes = page.readBytes()
+    val size = JxlCoder.getSize(bytes) ?: return null
+    val longest = max(size.width, size.height)
+    val bitmap = if (longest <= MAX_PAGE_DIMENSION)
+        JxlCoder.decode(bytes, PreferredColorConfig.DEFAULT, ScaleMode.FIT)
+    else {
+        // Very tall pages would blow up the heap if decoded at full size; keep them readable instead.
+        val scale = MAX_PAGE_DIMENSION.toFloat() / longest
+        val width = (size.width * scale).toInt().coerceAtLeast(1)
+        val height = (size.height * scale).toInt().coerceAtLeast(1)
+        JxlCoder.decodeSampled(bytes, width, height,
+            PreferredColorConfig.DEFAULT, ScaleMode.RESIZE, JxlResizeFilter.BICUBIC)
+    }
+    return bitmap
+}
+
+private const val MAX_PAGE_DIMENSION = 4096
+
+// Decoding is the expensive part of opening a JPEG XL page, so keep the latest bitmaps around and
+// hand them straight to the reader. This is what makes turning pages feel instant.
+private val pageBitmapCache = object : LruCache<String, Bitmap>(
+    (Runtime.getRuntime().maxMemory() / 8).toInt().coerceAtLeast(16 * 1024 * 1024)) {
+    override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+}
+
+private fun bitmapCacheKey(page: File) = "${page.absolutePath}:${page.length()}:${page.lastModified()}"
+
+fun cachedJxlBitmap(page: File) : Bitmap? = pageBitmapCache.get(bitmapCacheKey(page))?.takeUnless { it.isRecycled }
+
+fun cacheJxlBitmap(page: File, bitmap: Bitmap) {
+    pageBitmapCache.put(bitmapCacheKey(page), bitmap)
+}
+
+/** Decodes a JPEG XL page, reusing the in-memory cache. Call from a background thread. */
+fun loadJxlBitmap(page: File) : Bitmap? {
+    cachedJxlBitmap(page)?.let { return it }
+
+    val bitmap = tryOrNull { decodeJxlPage(page) } ?: return null
+    cacheJxlBitmap(page, bitmap)
+    return bitmap
 }
 
 fun downloadCoilImageWithProgress(context: Context, imagePath: String, uiProgressListener: (Int) -> Unit) : ImageRequest {
