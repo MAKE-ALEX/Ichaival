@@ -207,6 +207,9 @@
     <string name="dual_page_display">页 %1$d-%2$d/%3$d</string>
     <string name="random_count_menu">更改计数</string>
     <string name="random_header">随机档案</string>
+    <string name="random_picks">随机精选</string>
+    <string name="random_picks_empty">没有找到档案。</string>
+    <string name="random_picks_pages">%1$d 页</string>
     <string name="random_count_pref" translatable="false">random_count_pref</string>
     <string name="random_count_pref_title">随机档案计数</string>
     <string name="random_count_pref_summary">按下随机按钮时应选择的随机档案数量。 当前为: %s</string>

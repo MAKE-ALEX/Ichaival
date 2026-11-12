@@ -141,24 +141,15 @@ class ArchiveListFragment : Fragment(),
         val randomButton: Button = view.findViewById(R.id.random_button)
         randomButton.setOnClickListener {
             listAdapter?.disableMultiSelect()
-            val randomCount = prefs.castStringPrefToInt(getString(R.string.random_count_pref), 1)
-            if (randomCount > 1) {
-                val intent = Intent(context, ArchiveRandomActivity::class.java)
-                val bundle = Bundle().apply {
-                    if (viewModel.categoryId.isNotEmpty())
-                        putString(RANDOM_CAT, viewModel.categoryId)
-                    if (searchView.query.isNotBlank())
-                        putString(RANDOM_SEARCH, searchView.query.toString())
-                }
-                intent.putExtras(bundle)
-                startActivity(intent)
-            } else {
-                launch {
-                    val archive = DatabaseReader.getRandom(viewModel.filter, viewModel.status, viewModel.categoryId)
-                    if (archive != null)
-                        startDetailsActivity(archive.id, requireContext())
-                }
+            val intent = Intent(context, RandomPicksActivity::class.java)
+            val bundle = Bundle().apply {
+                if (viewModel.categoryId.isNotEmpty())
+                    putString(RANDOM_CAT, viewModel.categoryId)
+                if (searchView.query.isNotBlank())
+                    putString(RANDOM_SEARCH, searchView.query.toString())
             }
+            intent.putExtras(bundle)
+            startActivity(intent)
         }
 
         randomButton.setOnLongClickListener {
@@ -182,11 +173,6 @@ class ArchiveListFragment : Fragment(),
                 swipeRefreshLayout.isEnabled = false
                 searchView.setQuery(viewModel.filter, false)
             }
-            is ArchiveRandomActivity -> {
-                randomButton.visibility = View.GONE
-                searchView.visibility = View.GONE
-                swipeRefreshLayout.isEnabled = false
-            }
         }
 
         return view
@@ -197,7 +183,7 @@ class ArchiveListFragment : Fragment(),
         this.menu = menu
 
         when (activity) {
-            is ArchiveSearch, is ArchiveRandomActivity -> {
+            is ArchiveSearch -> {
                 with (menu) {
                     findItem(R.id.refresh_archives)?.isVisible = false
                     findItem(R.id.filter_menu)?.isVisible = false
@@ -425,12 +411,10 @@ class ArchiveListFragment : Fragment(),
     private fun handleArchiveLongPress(archive: ArchiveListEntry) : Boolean {
         val tagFragment = TagDialogFragment.newInstance(archive.id)
 
-        if (activity !is ArchiveRandomActivity) {
-            tagFragment.setTagPressListener { tag -> searchView.setQuery(tag, true) }
-            tagFragment.setTagLongPressListener { tag ->
-                searchView.setQuery("${searchView.query} $tag", true)
-                true
-            }
+        tagFragment.setTagPressListener { tag -> searchView.setQuery(tag, true) }
+        tagFragment.setTagLongPressListener { tag ->
+            searchView.setQuery("${searchView.query} $tag", true)
+            true
         }
 
         tagFragment.setDetailsButtonListener { startDetailsActivity(it, requireContext()) }
@@ -526,7 +510,7 @@ class ArchiveListFragment : Fragment(),
 
     override fun onListFragmentInteraction(archive: ArchiveListEntry, view: View) {
         when (val act = requireActivity()) {
-            is ArchiveSearch, is ArchiveRandomActivity -> act.setResult(Activity.RESULT_OK)
+            is ArchiveSearch -> act.setResult(Activity.RESULT_OK)
         }
 
         val intent = Intent(activity, ArchiveDetails::class.java).apply {

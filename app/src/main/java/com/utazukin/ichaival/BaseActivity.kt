@@ -170,7 +170,8 @@ abstract class BaseActivity : AppCompatActivity(), DatabaseMessageListener, OnTa
 
     override fun onStop() {
         super.onStop()
-        drawerLayout.closeDrawers()
+        if (::drawerLayout.isInitialized)
+            drawerLayout.closeDrawers()
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {

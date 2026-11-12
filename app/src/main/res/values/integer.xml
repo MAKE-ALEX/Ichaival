@@ -18,7 +18,7 @@
   -->
 
 <resources>
-    <integer name="default_random_count">1</integer>
+    <integer name="default_random_count">12</integer>
     <integer name="default_search_delay">750</integer>
     <integer name="default_fullscreen_timeout">5</integer>
     <integer name="default_sync_time">24</integer>

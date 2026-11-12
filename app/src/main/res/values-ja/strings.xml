@@ -206,6 +206,9 @@
     <string name="dual_page_display">ページ %1$d-%2$d/%3$d</string>
     <string name="random_count_menu">カウントの変更</string>
     <string name="random_header">ランダムアーカイブ</string>
+    <string name="random_picks">ランダムピック</string>
+    <string name="random_picks_empty">アーカイブが見つかりません。</string>
+    <string name="random_picks_pages">%1$d ページ</string>
     <string name="random_count_pref" translatable="false">random_count_pref</string>
     <string name="random_count_pref_title">ランダムアーカイブカウント</string>
     <string name="random_count_pref_summary">ランダムボタンを押したときに選択する必要があるランダムアーカイブの量。 現在: %s</string>

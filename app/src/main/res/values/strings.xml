@@ -226,6 +226,9 @@
     <string name="dual_page_display">Pages %1$d-%2$d/%3$d</string>
     <string name="random_count_menu">Change Count</string>
     <string name="random_header">Random Archives</string>
+    <string name="random_picks">Random Picks</string>
+    <string name="random_picks_empty">No archives found.</string>
+    <string name="random_picks_pages">%1$d pages</string>
     <string name="random_count_pref" translatable="false">random_count_pref</string>
     <string name="random_count_pref_title">Random Archive Count</string>
     <string name="random_count_pref_summary">The amount of random archives that should be picked when pressing the random button. Current: %s</string>
